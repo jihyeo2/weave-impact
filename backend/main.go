@@ -338,11 +338,6 @@ func fetchAuthorAggs(ctx context.Context, token string, cutoffDateYYYYMMDD strin
 				} `json:"reviews"`
 				Commits struct {
 					TotalCount int `json:"totalCount"`
-					Nodes []struct {
-						Commit struct {
-							CommittedDate time.Time `json:"committedDate"`
-						} `json:"commit"`
-					} `json:"nodes"`
 				} `json:"commits"`
 			} `json:"nodes"`
 		} `json:"search"`
@@ -361,8 +356,8 @@ func fetchAuthorAggs(ctx context.Context, token string, cutoffDateYYYYMMDD strin
 		 changedFiles
 		 createdAt
 		 mergedAt
-		 reviews(first: 20) { nodes { submittedAt } }
-		 commits(first: 100) { totalCount nodes { commit { committedDate } } }
+		 reviews(first: 1, orderBy: {field: SUBMITTED_AT, direction: ASC}) { nodes { submittedAt } }
+		 commits { totalCount }
       }
     }
   }
@@ -386,6 +381,7 @@ func fetchAuthorAggs(ctx context.Context, token string, cutoffDateYYYYMMDD strin
 		req.Header.Set("Accept", "application/vnd.github+json")
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+		req.Header.Set("User-Agent", "weave-impact")
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -445,14 +441,10 @@ func fetchAuthorAggs(ctx context.Context, token string, cutoffDateYYYYMMDD strin
 					agg.FirstReviewHours = append(agg.FirstReviewHours, frHours)
 				}
 
-				postReviewCommits := 0
-				for _, c := range n.Commits.Nodes {
-					if c.Commit.CommittedDate.After(*firstReviewAt) {
-						postReviewCommits++
-					}
-				}
-				if n.Commits.TotalCount > len(n.Commits.Nodes) {
-					postReviewCommits += n.Commits.TotalCount - len(n.Commits.Nodes)
+				// Approximation: without commit timestamps, treat all commits after the first commit as "post-review".
+				postReviewCommits := n.Commits.TotalCount - 1
+				if postReviewCommits < 0 {
+					postReviewCommits = 0
 				}
 				denom := math.Log1p(float64(linesChanged))
 				if denom > 0 {
