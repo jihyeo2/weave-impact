@@ -9,12 +9,22 @@ A prototype dashboard that ranks engineers by impact using GitHub merged PR data
 
 ## Impact score (high level)
 
-We compute 4 metrics per engineer over the selected timeframe, convert each metric to a percentile across engineers (inverting where lower is better), then average the percentiles:
+Impact is modeled across three dimensions, using 4 measurable signals from merged PRs. We convert each signal to a percentile across engineers (inverting where lower is better), then average the percentiles into a composite score.
 
-- Output: `log1p(additions+deletions) + 0.3*log1p(changedFiles)` summed across merged PRs (higher is better)
-- Cycle time: median hours from PR created → merged (lower is better)
-- Time to first review: median hours from PR created → first review submitted (lower is better)
-- Iteration cost (approx): average of `(commits.totalCount - 1) / log1p(linesChanged)` for reviewed PRs (lower is better)
+- Productivity
+  - Output (higher is better)
+- Collaboration
+  - Cycle time (lower is better)
+  - Time to first review (lower is better)
+- Quality
+  - Iteration cost / rework (lower is better)
+
+The four signals are:
+
+- Output (Productivity): `log1p(additions+deletions) + 0.3*log1p(changedFiles)` summed across merged PRs
+- Cycle time (Collaboration): median hours from PR created → merged
+- Time to first review (Collaboration): median hours from PR created → first review submitted
+- Iteration cost (Quality, approx): average of `(commits.totalCount - 1) / log1p(linesChanged)` for reviewed PRs
 
 Merged PR count is displayed as supporting context (not directly used in the composite score).
 

@@ -35,7 +35,7 @@ export default function App() {
     async function run() {
       try {
         setError(null)
-        const res = await fetch(`${API_BASE}/api/engineer-stats?days=90`, {
+        const res = await fetch(`${API_BASE}/api/engineer-stats?days=90&max_prs=200`, {
           signal: controller.signal,
         })
         if (!res.ok) throw new Error(`Request failed: ${res.status}`)
@@ -65,31 +65,34 @@ export default function App() {
             Repo: {data.repo} | Generated: {new Date(data.generated_at).toLocaleString()}
           </div>
 
-		  <div style={{ marginTop: 14, padding: 12, border: '1px solid #eee', borderRadius: 8, background: '#fafafa' }}>
-			<div style={{ fontWeight: 600, marginBottom: 6 }}>How Impact Score is calculated</div>
-			<div style={{ fontSize: 13, color: '#444', lineHeight: 1.4 }}>
-				<div style={{ marginBottom: 8 }}>
-					We compute 4 metrics per engineer over the last {data.days} days, convert each metric to a percentile across engineers, then average the percentiles. Merged PR count is shown as supporting context.
-				</div>
-				<ol style={{ margin: 0, paddingLeft: 18 }}>
-					<li style={{ marginBottom: 4 }}>
-						<strong>Output</strong>: sum of <code>log1p(additions + deletions) + 0.3 * log1p(changedFiles)</code> across merged PRs. Higher is better.
-					</li>
-					<li style={{ marginBottom: 4 }}>
-						<strong>Cycle time</strong>: median time from PR created → merged (hours). Lower is better (we invert the percentile).
-					</li>
-					<li style={{ marginBottom: 4 }}>
-						<strong>Time to first review</strong>: median time from PR created → first review submitted (hours). Lower is better (we invert the percentile).
-					</li>
-					<li>
-						<strong>Iteration cost</strong>: average of <code>(post-review commits) / log1p(linesChanged)</code> over reviewed PRs. Lower is better (we invert the percentile).
-					</li>
-				</ol>
-				<div style={{ marginTop: 10 }}>
-					<strong>Final impact score</strong> = average of the 4 percentiles (equal weights).
-				</div>
-			</div>
-		  </div>
+          <div style={{ marginTop: 14, padding: 12, border: '1px solid #eee', borderRadius: 8, background: '#fafafa' }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>How Impact Score is calculated</div>
+            <div style={{ fontSize: 13, color: '#444', lineHeight: 1.4 }}>
+              <div style={{ marginBottom: 8 }}>
+                Impact is modeled across three dimensions—<strong>Productivity</strong>, <strong>Collaboration</strong>, and <strong>Quality</strong>. We compute 4 measurable signals per engineer over the last {data.days} days, convert each signal to a percentile across engineers (inverting where lower is better), then average the percentiles. Merged PR count is shown as supporting context.
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <strong>Dimension mapping</strong>: Output → Productivity; Cycle time + Time to first review → Collaboration; Iteration cost → Quality.
+              </div>
+              <ol style={{ margin: 0, paddingLeft: 18 }}>
+                <li style={{ marginBottom: 4 }}>
+                  <strong>Output (Productivity)</strong>: sum of <code>log1p(additions + deletions) + 0.3 * log1p(changedFiles)</code> across merged PRs. Higher is better.
+                </li>
+                <li style={{ marginBottom: 4 }}>
+                  <strong>Cycle time (Collaboration)</strong>: median time from PR created → merged (hours). Lower is better (we invert the percentile).
+                </li>
+                <li style={{ marginBottom: 4 }}>
+                  <strong>Time to first review (Collaboration)</strong>: median time from PR created → first review submitted (hours). Lower is better (we invert the percentile).
+                </li>
+                <li>
+                  <strong>Iteration cost (Quality)</strong>: average of <code>(post-review commits) / log1p(linesChanged)</code> over reviewed PRs. Lower is better (we invert the percentile).
+                </li>
+              </ol>
+              <div style={{ marginTop: 10 }}>
+                <strong>Final impact score</strong> = average of the 4 percentiles (equal weights).
+              </div>
+            </div>
+          </div>
 
           <ol style={{ marginTop: 12 }}>
             {data.top.map((e) => (
