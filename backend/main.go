@@ -210,6 +210,16 @@ func handleEngineerStats(w http.ResponseWriter, r *http.Request) {
 		days = n
 	}
 
+	force := false
+	if v := r.URL.Query().Get("force"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			http.Error(w, "invalid force", http.StatusBadRequest)
+			return
+		}
+		force = b
+	}
+
 	maxPRs := 2000
 	if v := r.URL.Query().Get("max_prs"); v != "" {
 		n, err := strconv.Atoi(v)
@@ -228,16 +238,20 @@ func handleEngineerStats(w http.ResponseWriter, r *http.Request) {
 
 	// Stale-while-revalidate: serve cached snapshot immediately (even if stale), and refresh in background.
 	cacheTTL := 30 * time.Minute
-	if cached, ok, stale := getEngineerStatsFromCacheWithStale(days, maxPRs, cacheTTL); ok {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(cached)
-		if stale {
-			triggerEngineerStatsRefresh(r.Context(), token, days, maxPRs)
-			log.Printf("/api/engineer-stats days=%d max_prs=%d took=%s (served stale; refresh queued)", days, maxPRs, time.Since(start).Truncate(time.Millisecond))
+	if !force {
+		if cached, ok, stale := getEngineerStatsFromCacheWithStale(days, maxPRs, cacheTTL); ok {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(cached)
+			if stale {
+				triggerEngineerStatsRefresh(r.Context(), token, days, maxPRs)
+				log.Printf("/api/engineer-stats days=%d max_prs=%d took=%s (served stale; refresh queued)", days, maxPRs, time.Since(start).Truncate(time.Millisecond))
+				return
+			}
+			log.Printf("/api/engineer-stats days=%d max_prs=%d took=%s (cache hit)", days, maxPRs, time.Since(start).Truncate(time.Millisecond))
 			return
 		}
-		log.Printf("/api/engineer-stats days=%d max_prs=%d took=%s (cache hit)", days, maxPRs, time.Since(start).Truncate(time.Millisecond))
-		return
+	} else {
+		log.Printf("/api/engineer-stats days=%d max_prs=%d force=true (bypassing cache)", days, maxPRs)
 	}
 
 	cutoff := time.Now().AddDate(0, 0, -days).UTC().Format("2006-01-02")

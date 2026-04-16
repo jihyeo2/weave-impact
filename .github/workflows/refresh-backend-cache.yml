@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Warm / refresh engineer stats
         run: |
-          curl -sS -D - "${{ vars.BACKEND_URL }}/api/engineer-stats?days=90&max_prs=200" -o /dev/null
+          curl -sS -D - "${{ vars.BACKEND_URL }}/api/engineer-stats?days=90&max_prs=200&force=true" -o /dev/null
