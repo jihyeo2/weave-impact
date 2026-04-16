@@ -243,6 +243,15 @@ func handleEngineerStats(w http.ResponseWriter, r *http.Request) {
 	cutoff := time.Now().AddDate(0, 0, -days).UTC().Format("2006-01-02")
 	aggs, err := fetchAuthorAggs(r.Context(), token, cutoff, maxPRs)
 	if err != nil {
+		if snapshot, ok := loadPersistedEngineerStatsSnapshot(days, maxPRs); ok {
+			cacheTTL := 30 * time.Minute
+			setEngineerStatsCache(days, maxPRs, snapshot, cacheTTL)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(snapshot)
+			triggerEngineerStatsRefresh(r.Context(), token, days, maxPRs)
+			log.Printf("/api/engineer-stats days=%d max_prs=%d took=%s (served persisted snapshot; refresh queued; fetch err=%v)", days, maxPRs, time.Since(start).Truncate(time.Millisecond), err)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
@@ -568,6 +577,22 @@ func persistEngineerStatsCache(days int, maxPRs int, payload engineerStatsRespon
 		return err
 	}
 	return os.Rename(tmp, path)
+}
+
+func loadPersistedEngineerStatsSnapshot(days int, maxPRs int) (engineerStatsResponse, bool) {
+	path := engineerStatsCacheFilePath(days, maxPRs)
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return engineerStatsResponse{}, false
+	}
+	var payload engineerStatsResponse
+	if err := json.Unmarshal(b, &payload); err != nil {
+		return engineerStatsResponse{}, false
+	}
+	if payload.Days <= 0 || payload.Repo == "" {
+		return engineerStatsResponse{}, false
+	}
+	return payload, true
 }
 
 func loadPersistedEngineerStatsCache() {

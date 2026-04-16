@@ -54,7 +54,7 @@ export default function App() {
   return (
     <div style={{ fontFamily: 'system-ui, sans-serif', padding: 24, maxWidth: 720 }}>
       <h1 style={{ margin: 0 }}>Weave Impact Prototype</h1>
-      <p style={{ marginTop: 8, color: '#444' }}>Top engineers by impact score (last 90 days)</p>
+      <p style={{ marginTop: 8, color: '#444' }}>Top 5 engineers by impact score (last 90 days)</p>
 
       {!data && !error && <p>Loading…</p>}
       {error && <p style={{ color: 'crimson' }}>Error: {error}</p>}

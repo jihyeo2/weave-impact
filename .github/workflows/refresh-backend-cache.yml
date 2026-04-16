@@ -1,0 +1,14 @@
+name: Refresh backend cache
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Warm / refresh engineer stats
+        run: |
+          curl -sS -D - "${{ vars.BACKEND_URL }}/api/engineer-stats?days=90&max_prs=200" -o /dev/null
