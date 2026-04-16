@@ -356,7 +356,7 @@ func fetchAuthorAggs(ctx context.Context, token string, cutoffDateYYYYMMDD strin
 		 changedFiles
 		 createdAt
 		 mergedAt
-		 reviews(first: 1, orderBy: {field: SUBMITTED_AT, direction: ASC}) { nodes { submittedAt } }
+		 reviews(first: 1) { nodes { submittedAt } }
 		 commits { totalCount }
       }
     }
